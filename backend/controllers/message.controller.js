@@ -1,5 +1,8 @@
 import Conversation from "../models/conversation.model.js";
 import Message from "../models/message.model.js";
+import { getReceiverSocketId } from "../socket/socket.js";
+
+import { io } from '../socket/socket.js';
 
 export const sendMessage = async (req, res) => {
     try {
@@ -27,13 +30,20 @@ export const sendMessage = async (req, res) => {
             conversation.messages.push(newMessage._id);
         }
 
-        // SOCKET IO FUNCTIONALITY SHOULD BE ADDED TO MAKE THIS REAL TIME.
-
+        
         // await conversation.save();
         // await newMessage.save();                These two statements run one after the other so to optimise this and save these simultaneously
 
         //instead of these we can run the following command.
+        
         await Promise.all([conversation.save(), newMessage.save()]);
+
+        // SOCKET IO FUNCTIONALITY SHOULD BE ADDED TO MAKE THIS REAL TIME.
+        const receiverSocketId = getReceiverSocketId(receiverId);
+        if(receiverSocketId) {
+            // io.to(<socket_id>).emit() used to send events to specific client.
+            io.to(receiverSocketId).emit("newMessage", newMessage);
+        }
 
         res.status(201).json(newMessage);
 
